@@ -188,12 +188,31 @@ func convertMainData(target interface{}, tagName string) map[string]interface{} 
 		for i := 0; i < size; i++ {
 			f := src.Type().Field(i)
 			jsonFiledKey := getFiledTag("json", &f)
+			// if value is null, then ignore
 			if t := f.Tag.Get(tagName); t == "" {
-				data[jsonFiledKey] = src.Field(i).Interface()
+				v := src.Field(i)
+				if !isEmpty(v) {
+					data[jsonFiledKey] = v.Interface()
+				}
 			}
 		}
 	}
 	return data
+}
+
+func isEmpty(v reflect.Value) bool {
+	if !v.IsValid() {
+		return true
+	}
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return true
+		}
+		return false
+	}
+	dataValue := v.Interface()
+	emptyValue := newWithValue(dataValue, nil, false)
+	return reflect.DeepEqual(dataValue, emptyValue)
 }
 
 func uniMarshal(fKey string, f *reflect.StructField, data interface{}) (childKvs []*mapData, err error) {
