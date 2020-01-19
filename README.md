@@ -11,7 +11,7 @@ type Config struct {
 var cfg Config{}
 
 // bind data to 
-binder, _ := ofm.Bind(ctx, &cfg, "conf/test.yaml")
+binder, _ := objectbind.Bind(ctx, &cfg, "conf/test.yaml")
 
 // receive data change when Name filed is change
 binder.BindField("Name", func(value, _ interface{}) {
