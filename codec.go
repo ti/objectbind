@@ -82,7 +82,7 @@ func (b *Binder) codec2JSON(path string, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s unmarshal path %s 's data %s error for %s", b.codec.String(), path, string(src), err)
 	}
-	needRootUnmarshal := path == b.root && len(b.fields) > 1
+	needRootUnmarshal := path == b.root
 	if needRootUnmarshal {
 		data = convertMainData(data, b.tagName)
 	}
