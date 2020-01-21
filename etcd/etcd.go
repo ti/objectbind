@@ -106,17 +106,13 @@ func (e *Etcd) Load(ctx context.Context, path string) (map[string][]byte, error)
 }
 
 // Save save the data to path
-func (e *Etcd) Save(ctx context.Context, path string, data []byte) error {
+func (e *Etcd) Save(ctx context.Context, path string, data []byte) (err error) {
 	if len(data) > 0 {
-		if _, err := e.client.Put(ctx, path, string(data)); err != nil {
-			return err
-		}
+		_, err = e.client.Put(ctx, path, string(data))
+	} else {
+		_, err = e.client.Delete(ctx, path)
 	}
-	_, err := e.client.Delete(ctx, path)
-	if err != nil {
-		return err
-	}
-	return nil
+	return
 }
 
 // Watch watch the path
