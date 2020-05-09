@@ -12,7 +12,7 @@ Object-files mapping,  dynamic bind files, directory, etcd or other file-like ba
 
 For example:
 
-```
+```go
 defaultConfig := struct {
     Name map[string]interface{}
     Data []map[string]interface{} `bind:"data/conf/test"`
