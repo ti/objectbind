@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"net/url"
 	"path/filepath"
 	"reflect"
@@ -171,24 +170,25 @@ func (b *Binder) ForceLoad(ctx context.Context) error {
 
 // Save save the data
 func (b *Binder) Save(ctx context.Context) error {
-	memeryData, err := marshal(b.root, b.instance, b.tagName)
+	memoryData, err := marshal(b.root, b.instance, b.tagName)
 	if err != nil {
 		return err
 	}
 	// compare
 	var todoSave []*mapData
-	for _, memeryItem := range memeryData {
-		currentItem, ok := b.currentFiles[memeryItem.Key]
-		if !ok || memeryItem.Value != currentItem.Value {
-			todoSave = append(todoSave, memeryItem)
+	for _, memoryItem := range memoryData {
+		currentItem, ok := b.currentFiles[memoryItem.Key]
+		if !ok || memoryItem.Value != currentItem.Value {
+			todoSave = append(todoSave, memoryItem)
 		}
 	}
-	memeryDataMap := make(map[string]*mapData)
-	for _, v := range memeryData {
-		memeryDataMap[v.Key] = v
+
+	memoryDataMap := make(map[string]*mapData)
+	for _, v := range memoryData {
+		memoryDataMap[v.Key] = v
 	}
 	for k := range b.currentFiles {
-		memItem, ok := memeryDataMap[k]
+		memItem, ok := memoryDataMap[k]
 		if !ok || memItem.Value == "" {
 			todoSave = append(todoSave, &mapData{
 				Key:   k,
