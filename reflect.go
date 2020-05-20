@@ -35,6 +35,9 @@ func clone(src interface{}, forceAddr bool) interface{} {
 
 // newWithValue fully copy config instance, include map
 func newWithValue(src interface{}, v []byte, forceAddr bool) interface{} {
+	if src == nil {
+		return nil
+	}
 	t := reflect.Indirect(reflect.ValueOf(src)).Type()
 	dist := reflect.New(t).Interface()
 	if len(v) > 0 {
