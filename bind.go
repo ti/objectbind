@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/sirupsen/logrus"
 	"net/url"
 	"path/filepath"
 	"reflect"
@@ -151,7 +151,7 @@ func (b *Binder) init(ctx context.Context, opt *Options) (err error) {
 				// Attempt to reload the config
 				err = b.ForceLoad(context.Background())
 				if err != nil {
-					log.Printf("objectbind forceLoad error %s", err)
+					logrus.WithField("action", "objectbind").Errorf("forceLoad error %s", err)
 				}
 			}
 		}()
