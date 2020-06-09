@@ -2,6 +2,7 @@ package objectbind
 
 import (
 	"sync"
+	"time"
 )
 
 //Options the Options of config
@@ -12,6 +13,7 @@ type Options struct {
 	tagName          string
 	withoutExtension bool
 	withoutWatch     bool
+	ttl              time.Duration
 }
 
 //Option is just Option functions
@@ -56,5 +58,12 @@ func WithoutExtension(e bool) Option {
 func WithoutWatch(w bool) Option {
 	return func(o *Options) {
 		o.withoutWatch = w
+	}
+}
+
+// WithTTL Do Reload in a ttl loop.
+func WithTTL(t time.Duration) Option {
+	return func(o *Options) {
+		o.ttl = t
 	}
 }

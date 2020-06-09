@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Binder the binder instance
@@ -55,6 +57,7 @@ func Bind(ctx context.Context, target interface{}, uri string, opts ...Option) (
 	if u.Scheme == "" {
 		u.Scheme = schemeFile
 	}
+
 	if opt.backend == nil {
 		backend, ok := backends[u.Scheme]
 		if !ok {
@@ -63,6 +66,18 @@ func Bind(ctx context.Context, target interface{}, uri string, opts ...Option) (
 		opt.backend, err = backend(ctx, u)
 		if err != nil {
 			return nil, err
+		}
+	}
+	if opt.ttl == 0 {
+		if t := u.Query().Get("ttl"); t != "" {
+			if td, err := time.ParseDuration(t); err == nil {
+				if td >= time.Second {
+					if td <= 3*time.Second {
+						opt.withoutWatch = true
+					}
+					opt.ttl = td
+				}
+			}
 		}
 	}
 	ext := filepath.Ext(u.Path)
@@ -127,6 +142,19 @@ func (b *Binder) init(ctx context.Context, opt *Options) (err error) {
 	}
 	if err != nil {
 		return
+	}
+	if opt.ttl >= time.Second {
+		go func() {
+			for {
+				// Delay after each request
+				<-time.After(opt.ttl)
+				// Attempt to reload the config
+				err = b.ForceLoad(context.Background())
+				if err != nil {
+					log.Printf("objectbind forceLoad error %s", err)
+				}
+			}
+		}()
 	}
 	b.preInstance = clone(b.instance, false)
 	if !opt.withoutWatch {
