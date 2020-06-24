@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/ti/objectbind/etcd"
-
 	"github.com/ti/objectbind/file"
 )
 
@@ -23,7 +21,6 @@ var backends = make(map[string]NewBackend)
 
 const (
 	schemeFile = "file"
-	schemeEtcd = "etcd"
 )
 
 //SetBackend set backed
@@ -35,8 +32,5 @@ func SetBackend(scheme string, backend NewBackend) {
 func init() {
 	SetBackend(schemeFile, func(ctx context.Context, uri *url.URL) (Backend, error) {
 		return file.New(ctx, uri)
-	})
-	SetBackend(schemeEtcd, func(ctx context.Context, uri *url.URL) (Backend, error) {
-		return etcd.New(etcd.WithContext(ctx), etcd.WithURI(uri))
 	})
 }

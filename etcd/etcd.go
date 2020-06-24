@@ -9,9 +9,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ti/objectbind"
 	"go.etcd.io/etcd/v3/clientv3"
 	"go.etcd.io/etcd/v3/pkg/transport"
 )
+
+const schemeEtcd = "etcd"
+
+func init() {
+	objectbind.SetBackend(schemeEtcd, func(ctx context.Context, uri *url.URL) (objectbind.Backend, error) {
+		return New(WithContext(ctx), WithURI(uri))
+	})
+}
 
 // Etcd the default etcd backend
 type Etcd struct {
