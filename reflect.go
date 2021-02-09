@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"reflect"
 	"strconv"
 	"strings"
@@ -45,7 +44,7 @@ func newWithValue(src interface{}, v []byte, forceAddr bool) interface{} {
 		dec := json.NewDecoder(buf)
 		err := dec.Decode(dist)
 		if err != nil {
-			logrus.WithField("action", "objectbind.NewWithValue").Error(err)
+			warnLog("objectbind.NewWithValue", err.Error())
 		}
 	}
 	rv := reflect.ValueOf(src)

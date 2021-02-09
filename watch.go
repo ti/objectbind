@@ -2,11 +2,10 @@ package objectbind
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 // watch save the data
@@ -40,7 +39,7 @@ func (b *Binder) watch(ctx context.Context) error {
 			}
 			changedFiles, err := b.loadJSONFile(ctx, field.Path)
 			if err != nil {
-				logrus.WithField("action", "objectbind.LoadFile").WithField("path", field.Path).Error(err)
+				warnLog("objectbind.LoadFile " + field.Path, err.Error())
 				return
 			}
 			dataFiles = append(dataFiles, changedFiles...)
@@ -52,7 +51,7 @@ func (b *Binder) watch(ctx context.Context) error {
 		}
 		err := unmarshal(b.root, dataFiles, b.instance, b.tagName)
 		if err != nil {
-			logrus.WithField("action", "objectbind.onChange.Unmarshal").Error(err)
+			warnLog("objectbind.onChange.Unmarshal", err.Error())
 		}
 		currentFiles := b.currentFiles
 		for _, v := range changedPaths {
@@ -80,7 +79,7 @@ func (b *Binder) notifyChanges(ctx context.Context) {
 		oldValue, _ := getFieldValue(b.preInstance, t.filed, true, false)
 		newValue, err := getFieldValue(b.instance, t.filed, true, false)
 		if err != nil {
-			logrus.Warnf("can not get value by field %s for %s", t.filed, err)
+			warnLog("notifyChanges", fmt.Sprintf("can not get value by field %s for %s", t.filed, err))
 			continue
 		}
 		if newValue == nil && oldValue == nil {

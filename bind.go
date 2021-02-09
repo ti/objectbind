@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"path/filepath"
 	"reflect"
@@ -151,7 +150,7 @@ func (b *Binder) init(ctx context.Context, opt *Options) (err error) {
 				// Attempt to reload the config
 				err = b.ForceLoad(context.Background())
 				if err != nil {
-					logrus.WithField("action", "objectbind").Errorf("forceLoad error %s", err)
+					warnLog("objectbind", fmt.Sprintf("forceLoad error %v", err))
 				}
 			}
 		}()
@@ -233,4 +232,9 @@ func (b *Binder) Save(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+
+func warnLog(action, msg string)  {
+	fmt.Printf(`{"level":"warn","time":"%s","msg":"%s","action":"%s"}`, time.Now().UTC().Format(time.RFC3339), msg, action)
 }

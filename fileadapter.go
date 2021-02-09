@@ -9,8 +9,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 func (b *Binder) saveJSONFile(ctx context.Context, path string, data []byte) (err error) {
@@ -91,7 +89,8 @@ func (b *Binder) watchJSONFile(ctx context.Context, paths []string, onChange fun
 			if filename != "" && !strings.HasSuffix(filename, "/") {
 				jsonData, err := b.codec2JSON(filename, v)
 				if err != nil {
-					logrus.WithField("action", "objectbind.Watch.Load").WithField("path", filename).Error(err)
+					warnLog("objectbind.Watch.Load " + filename, err.Error())
+					continue
 				}
 				data = append(data, &mapData{
 					Key:   filename,

@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
 )
 
 // File the file watcher
@@ -166,7 +166,7 @@ func (f *File) watch(onChange func(map[string][]byte)) {
 	defer func() {
 		err = f.watcher.Close()
 		if err != nil {
-			logrus.WithField("action", "fsnotify.Close").Error(err)
+			warnLog("fsnotify.Close", err.Error())
 		}
 	}()
 	for {
@@ -185,7 +185,7 @@ func (f *File) watch(onChange func(map[string][]byte)) {
 			path := event.Name
 			fileData, err := ioutil.ReadFile(path)
 			if err != nil && !os.IsNotExist(err) {
-				logrus.WithField("action", "read_file").WithField("path", path).Error(err)
+				warnLog("read file " + path, err.Error())
 			}
 			data := make(map[string][]byte)
 			filePath := f.getPath(path)
@@ -196,7 +196,13 @@ func (f *File) watch(onChange func(map[string][]byte)) {
 			if !ok {
 				return
 			}
-			logrus.WithField("action", "fsnotify.Watcher").Error(err)
+			if err != nil {
+				warnLog("fsnotify.Watcher", err.Error())
+			}
 		}
 	}
+}
+
+func warnLog(action, msg string)  {
+	fmt.Printf(`{"level":"warn","time":"%s","msg":"%s","action":"%s"}`, time.Now().UTC().Format(time.RFC3339), msg, action)
 }
