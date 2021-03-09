@@ -2,10 +2,10 @@
 
 1. in your main project folder
 
-get lasted go.etcd.io/etcd/v3 package
+get lasted go.etcd.io/etcd/client/v3 package
 
 ```bash
-go get go.etcd.io/etcd/v3@beb5614aad24ac6041045357ebd7ba296853f384
+go get go.etcd.io/etcd/client/v3@v3.5.0-alpha.0
 ```
 
 2.  Edit your main.go
