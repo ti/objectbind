@@ -1,6 +1,6 @@
 # objectbind
 
-Object-files mapping,  dynamic bind files, directory, etcd or other file-like backend to golang object
+Object->files mapping,  dynamic bind files, directory, etcd or other file-like backend to golang object
 
 ### Simple Interface to Use
 
