@@ -238,5 +238,5 @@ func (b *Binder) Save(ctx context.Context) error {
 
 func warnLog(action, msg string)  {
 	_, _ = fmt.Fprintf(os.Stdout, `{"level":"warn","time":"%s","msg":"%s","action":"%s"}`+"\n",
-		time.Now().UTC().Format(time.RFC3339), msg)
+		time.Now().UTC().Format(time.RFC3339), msg, action)
 }
