@@ -2,96 +2,63 @@ package etcd
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ti/objectbind"
+
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/pkg/v3/transport"
 )
 
-const schemeEtcd = "etcd"
-
 func init() {
-	objectbind.SetBackend(schemeEtcd, func(ctx context.Context, uri *url.URL) (objectbind.Backend, error) {
-		return New(WithContext(ctx), WithURI(uri))
+	objectbind.SetBackend("etcd", func(ctx context.Context, uri *url.URL) (objectbind.Backend, error) {
+		return New(ctx, uri)
 	})
 }
 
-// Etcd the default etcd backend
+// Etcd the etcd client
 type Etcd struct {
 	client *clientv3.Client
-	locker sync.Locker
+	Root   string
 }
 
-// Options the Etcd Options
-type Options struct {
-	ctx    context.Context
-	Client *clientv3.Client
-	URI    *url.URL
-}
-
-// Option how to set the Options
-type Option func(*Options)
-
-// WithEtcdClient with etcd client
-func WithEtcdClient(client *clientv3.Client) Option {
-	return func(o *Options) {
-		o.Client = client
+// New new etcd client
+func New(ctx context.Context, uri *url.URL) (*Etcd, error) {
+	etcdConfig := clientv3.Config{
+		Endpoints:   strings.Split(uri.Host, ","),
+		DialTimeout: 10 * time.Second,
+		Context:     ctx,
 	}
-}
-
-// WithURI with etcd client
-func WithURI(uri *url.URL) Option {
-	return func(o *Options) {
-		o.URI = uri
+	if uri.User != nil && uri.User.Username() != "" {
+		etcdConfig.Username = uri.User.Username()
+		etcdConfig.Password, _ = uri.User.Password()
 	}
-}
-
-// WithURIString with etcd client
-func WithURIString(uri string) Option {
-	return func(o *Options) {
-		u, err := url.Parse(uri)
-		if err != nil {
-			panic(fmt.Errorf("parse etcd uri %s error for %s", uri, err))
+	query := uri.Query()
+	if cert := query.Get("cert"); cert != "" {
+		key := query.Get("key")
+		ca := query.Get("ca")
+		tlsInfo := transport.TLSInfo{
+			CertFile:      cert,
+			KeyFile:       key,
+			TrustedCAFile: ca,
 		}
-		o.URI = u
-	}
-}
-
-// WithContext with context when etcd init
-func WithContext(ctx context.Context) Option {
-	return func(o *Options) {
-		o.ctx = ctx
-	}
-}
-
-// New etcd form custom client
-func New(opts ...Option) (*Etcd, error) {
-	var options Options
-	for _, o := range opts {
-		o(&options)
-	}
-	if options.Client == nil {
-		if options.URI == nil {
-			return nil, errors.New("etcd client or etcd uri equired")
-		}
-		var err error
-		options.Client, err = newEtcdClient(context.Background(), options.URI)
+		tlsConfig, err := tlsInfo.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
+		etcdConfig.TLS = tlsConfig
 	}
-
-	etcd := &Etcd{
-		client: options.Client,
-		locker: &sync.Mutex{},
+	cli, err := clientv3.New(etcdConfig)
+	if err != nil {
+		return nil, err
 	}
-	return etcd, nil
+	return &Etcd{
+		client: cli,
+		Root:   filepath.Dir(uri.Path) + "/",
+	}, nil
 }
 
 // Load load data from path
@@ -104,6 +71,7 @@ func (e *Etcd) Load(ctx context.Context, path string) (map[string][]byte, error)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(getResp.Kvs) == 0 {
 		return nil, nil
 	}
@@ -132,57 +100,40 @@ func (e *Etcd) Watch(ctx context.Context, paths []string, onChange func(data map
 		if strings.HasSuffix(key, "/") {
 			opts = append(opts, clientv3.WithPrefix())
 		}
-		rch := e.client.Watch(ctx, key, opts...)
-		go func() {
-			for wresp := range rch {
-				var isChange bool
-				for _, ev := range wresp.Events {
-					if ev.Type == clientv3.EventTypePut || ev.Type == clientv3.EventTypeDelete {
-						isChange = true
-					}
-				}
-				if isChange {
-					data := make(map[string][]byte)
-					for _, evt := range wresp.Events {
-						data[string(evt.Kv.Key)] = evt.Kv.Value
-					}
-					if len(data) > 0 {
-						onChange(data)
-					}
-				}
-			}
-		}()
+		watchChan := e.client.Watch(ctx, key, opts...)
+		go watch(watchChan, onChange)
 	}
 	return nil
 }
 
-func newEtcdClient(ctx context.Context, etcdUri *url.URL) (*clientv3.Client, error) {
-	etcdConfig := clientv3.Config{
-		Endpoints:   strings.Split(etcdUri.Host, ","),
-		DialTimeout: 30 * time.Second,
-		Context:     ctx,
-	}
-	if etcdUri.User != nil && etcdUri.User.Username() != "" {
-		etcdConfig.Username = etcdUri.User.Username()
-		etcdConfig.Password, _ = etcdUri.User.Password()
-	}
-	etcdUriQuery := etcdUri.Query()
-	cert := etcdUriQuery.Get("cert")
-	if cert != "" {
-		key := etcdUriQuery.Get("key")
-		ca := etcdUriQuery.Get("ca")
-		tlsInfo := transport.TLSInfo{
-			CertFile:      cert,
-			KeyFile:       key,
-			TrustedCAFile: ca,
+func watch(watchChan clientv3.WatchChan, onChange func(data map[string][]byte)) {
+	for watchResponse := range watchChan {
+		var isChange bool
+		for _, ev := range watchResponse.Events {
+			if ev.Type == clientv3.EventTypePut || ev.Type == clientv3.EventTypeDelete {
+				isChange = true
+			}
 		}
-		tlsConfig, err := tlsInfo.ClientConfig()
-		if err != nil {
-			return nil, err
+		if isChange {
+			data := make(map[string][]byte)
+			for _, evt := range watchResponse.Events {
+				data[string(evt.Kv.Key)] = evt.Kv.Value
+			}
+			if len(data) > 0 {
+				onChange(data)
+			}
 		}
-		etcdConfig.TLS = tlsConfig
 	}
-	return clientv3.New(etcdConfig)
+}
+
+// Close close the etcd
+func (e *Etcd) Close(_ context.Context) error {
+	return e.client.Close()
+}
+
+// Client get the etcd client
+func (e *Etcd) Client() *clientv3.Client {
+	return e.client
 }
 
 func commonPaths(src []string) (dist []string) {
