@@ -5,7 +5,7 @@
 get lasted go.etcd.io/etcd/client/v3 package
 
 ```bash
-go get go.etcd.io/etcd/client/v3@v3.5.0-alpha.0
+go get go.etcd.io/etcd/client/v3@v3.5.0
 ```
 
 2.  Edit your main.go
