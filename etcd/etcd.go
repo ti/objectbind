@@ -55,6 +55,10 @@ func New(ctx context.Context, uri *url.URL) (*Etcd, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = cli.Status(ctx, uri.Host)
+	if err != nil {
+		return nil, err
+	}
 	return &Etcd{
 		client: cli,
 		Root:   filepath.Dir(uri.Path) + "/",
